@@ -31,6 +31,7 @@ async function connectToWhatsapp(){
 
   		sock.ev.on("messages.upsert", ({messages}) => {
 	  		// console.log(messages)
+	  		// console.log(messages[0].message.documentMessage)
 
 	  		const id = messages[0].key.remoteJid;
 	  		const msgId = id.split('@')[1] === 'g.us' ? messages[0].key.participant : id;
@@ -46,8 +47,11 @@ async function connectToWhatsapp(){
 				}
 	  		}
 	  		showChat()
+	  		function reply(text){sock.sendMessage(id, { text: text }, { quoted: messages[0] });};
 
-	  		switch(chat){
+	  		const command = chat.split(' ')[0]
+
+	  		switch(command){
 	  		case '.everyone':
 	  			async function tagAll(){
 					var participant = await sock.groupMetadata(id);
@@ -68,7 +72,47 @@ async function connectToWhatsapp(){
 				}
 				tagAll()
 	  			break;
-
+	  		case '.file':
+	  			var allFile = ''
+	  			fs.readdir('document', (error, files) => {
+	  				if(error){
+	  					console.error(error)
+	  				}else{
+	  					for (var i = 0; i < files.length; i++) {
+	  						allFile += `\n[${i+1}] ${files[i]}`
+	  					}
+	  					reply(`Dokumen yang ada :\n${allFile}`)
+	  				}
+	  			})
+	  			break;
+	  		case '.get':
+	  			fs.readdir('document', async (error, files) => {
+	  				if(error){
+	  					console.error(error)
+	  				}else{
+	  					const numberFile = parseInt(chat.split(' ')[1])
+	  					const pathFile = `document/${files[numberFile-1]}`
+	  					const fileExt = files[numberFile - 1].split('.')[1]
+	  					var docType = ''
+			            if (fileExt === 'pdf') {
+			                docType = 'pdf';
+			            } else if (fileExt === 'xls' || fileExt === 'xlsx') {
+			                docType = 'vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+			            } else if (fileExt === 'doc' || fileExt === 'docx') {
+			                docType = 'vnd.openxmlformats-officedocument.wordprocessingml.document';
+			            } else if (fileExt === 'ppt' || fileExt === 'pptx') {
+			                docType = 'vnd.ms-powerpoint';
+			            }
+	  					await sock.sendMessage(id, {
+	  						document: fs.readFileSync(pathFile),
+	  						mimetype: `application/${docType}`,
+	  						fileName: files[numberFile - 1],
+	  						ppt: true,
+	  						xls: true
+	  					})
+	  				}
+	  			})
+	  			break;
 		  	default:
 	  			break;
 	  		}
