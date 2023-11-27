@@ -2,7 +2,7 @@
 
 ## Installation
 ```
-git clone https://github.com/bot.git
+git clone https://github.com/arijsahmawan/bot
 ```
 ## Usage
 ```
