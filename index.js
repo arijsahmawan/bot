@@ -1,4 +1,4 @@
-const {makeWASocket, MessageType, Mimetype, MessageOptions, useMultiFileAuthState} = require('@whiskeysockets/baileys')
+const {makeWASocket, MessageType, Mimetype, MessageOptions, useMultiFileAuthState, downloadMediaMessage} = require('@whiskeysockets/baileys')
 const fs = require('fs')
 const pino = require('pino')
 const useCode = process.argv.includes("--useCode")
@@ -28,16 +28,30 @@ async function connectToWhatsapp(){
 	      		connectToWhatsapp()
     		}
   		})
-
-  		sock.ev.on("messages.upsert", ({messages}) => {
-	  		console.log(messages[0].message)
+  		var chat = ''
+  		sock.ev.on("messages.upsert", async ({messages}) => {
+  			try{
+		  		if(Reflect.ownKeys(messages[0].message)[0] === 'documentMessage'){
+		  			const buffer = await downloadMediaMessage(
+		  				messages[0],
+		  				'buffer',
+		  				{}
+		  			)
+		  			fs.writeFileSync(`./document/${messages[0].message.documentMessage.fileName}`, buffer, 'base64');
+	  			}
+	  		const msgType = Reflect.ownKeys(messages[0].message)[0];
+		  		chat = msgType === 'conversation' ? messages[0].message.conversation : msgType === 'extendedTextMessage' ? messages[0].message.extendedTextMessage.text : msgType === 'imageMessage' ? messages[0].message.imageMessage.caption : msgType === 'videoMessage' ? messages[0].message.videoMessage.caption : '';
+	  		}catch(error){
+	  			console.log('=================================')
+	  			console.error(error)
+	  			console.log('=================================')
+	  		}
+	  		// console.log(messages[0].message)
 	  		// console.log(messages[0].message.documentMessage)
 
 	  		const id = messages[0].key.remoteJid;
 	  		const msgId = id.split('@')[1] === 'g.us' ? messages[0].key.participant : id;
 	  		// console.log(Object.keys(messages[0].message)[0])
-	  		const msgType = Reflect.ownKeys(messages[0].message)[0];
-	  		const chat = msgType === 'conversation' ? messages[0].message.conversation : msgType === 'extendedTextMessage' ? messages[0].message.extendedTextMessage.text : msgType === 'imageMessage' ? messages[0].message.imageMessage.caption : msgType === 'videoMessage' ? messages[0].message.videoMessage.caption : '';
 
 	  		async function showChat() {
 				if(messages[0].key.remoteJid.split('@')[1] === 'g.us'){
@@ -49,9 +63,7 @@ async function connectToWhatsapp(){
 	  		}
 	  		showChat()
 	  		function reply(text){sock.sendMessage(id, { text: text }, { quoted: messages[0] });};
-
 	  		const command = chat.split(' ')[0]
-
 	  		switch(command){
 	  		case '.everyone':
 	  			async function tagAll(){
