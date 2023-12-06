@@ -30,12 +30,13 @@ async function connectToWhatsapp(){
   		})
 
   		sock.ev.on("messages.upsert", ({messages}) => {
-	  		// console.log(messages)
+	  		console.log(messages[0].message)
 	  		// console.log(messages[0].message.documentMessage)
 
 	  		const id = messages[0].key.remoteJid;
 	  		const msgId = id.split('@')[1] === 'g.us' ? messages[0].key.participant : id;
-	  		const msgType = Object.keys(messages[0].message)[0];
+	  		// console.log(Object.keys(messages[0].message)[0])
+	  		const msgType = Reflect.ownKeys(messages[0].message)[0];
 	  		const chat = msgType === 'conversation' ? messages[0].message.conversation : msgType === 'extendedTextMessage' ? messages[0].message.extendedTextMessage.text : msgType === 'imageMessage' ? messages[0].message.imageMessage.caption : msgType === 'videoMessage' ? messages[0].message.videoMessage.caption : '';
 
 	  		async function showChat() {
